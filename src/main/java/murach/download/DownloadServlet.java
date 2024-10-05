@@ -3,8 +3,8 @@ package murach.download;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
-import murach.business.User;
 import murach.business.Product;
+import murach.business.User;
 import murach.data.ProductIO;
 import murach.data.UserIO;
 import murach.util.CookieUtil;
@@ -31,7 +31,7 @@ public class DownloadServlet extends HttpServlet {
         } else if (action.equals("viewCookies")) {
             url = "/view_cookies.jsp";
         } else if (action.equals("deleteCookies")) {
-            url = this.deleteCookies(request,response);
+            url = this.deleteCookies(request, response);
         }
 
         // forward to the view
@@ -39,7 +39,6 @@ public class DownloadServlet extends HttpServlet {
                 .getRequestDispatcher(url)
                 .forward(request, response);
     }
-
 
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -59,64 +58,46 @@ public class DownloadServlet extends HttpServlet {
     }
 
     private String checkUser(HttpServletRequest request, HttpServletResponse response) {
+        String productCode = request.getParameter("productCode");
         HttpSession session = request.getSession();
         ServletContext sc = this.getServletContext();
-
-        // Get the path for products.txt
         String productPath = sc.getRealPath("WEB-INF/products.txt");
-
-        // Get the product code from the request
-        String productCode = request.getParameter("productCode");
-
-        // Ensure the product code is not null or empty
-        // Get the Product object for the current product
         Product product = ProductIO.getProduct(productCode, productPath);
+
+        System.out.println("File path: " + productPath);
 
         // Store the Product object in the session
         session.setAttribute("product", product);
 
-        // Retrieve the user from the session
         User user = (User) session.getAttribute("user");
         String url;
 
-        // If User object doesn't exist, check email cookie
+        // if User object doesn't exist, check email cookie
         if (user == null) {
             Cookie[] cookies = request.getCookies();
             String emailAddress = CookieUtil.getCookieValue(cookies, "emailCookie");
 
-            // If cookie doesn't exist, go to Registration page
-            if (emailAddress == null || emailAddress.isEmpty()) {
+            // if cookie doesn't exist, go to Registration page
+            if (emailAddress == null || emailAddress.equals("")) {
                 url = "/register.jsp";
             }
-            // If cookie exists, create User object and go to Downloads page
+            // if cookie exists, create User object and go to Downloads page
             else {
                 String path = sc.getRealPath("/WEB-INF/EmailList.txt");
                 user = UserIO.getUser(emailAddress, path);
-
-                // Ensure the user is found
-                if (user == null) {
-                    return "/error.jsp"; // Handle the scenario when the user is not found
-                }
-
-                // Store the User object in the session
                 session.setAttribute("user", user);
-
-                // Use product object to build the URL
                 url = "/musicStore/sound/" + product.getCode() + "_download.jsp";
-                System.out.println(product.getCode());
+                System.out.println(url);
             }
         }
-        // If User object exists, go to Downloads page
+        // if User object exists, go to Downloads page
         else {
-            // Use product object to build the URL
             url = "/musicStore/sound/" + product.getCode() + "_download.jsp";
-            System.out.println(product.getCode());
-
+            System.out.println(url);
         }
 
         return url;
     }
-
 
     private String registerUser(HttpServletRequest request, HttpServletResponse response) {
         // get the user data
@@ -135,6 +116,7 @@ public class DownloadServlet extends HttpServlet {
         // store the User object as a session attribute
         HttpSession session = request.getSession();
         session.setAttribute("user", user);
+        System.out.println("File path: " + path);
 
         // add a cookie that stores the user's email to the browser
         Cookie c = new Cookie("emailCookie", email);
@@ -147,31 +129,21 @@ public class DownloadServlet extends HttpServlet {
         firstNameCookie.setPath("/");
         response.addCookie(firstNameCookie);
 
-        // Get the Product object from the session
-        Product product = (Product) session.getAttribute("product");
-
-        // Get the product code and description
-        String productCode = product.getCode();
-
         // create and return a URL for the appropriate Download page
-
-        String url = "/musicStore/sound/" + productCode + "_download.jsp";
-        System.out.println(product.getCode());
+        Product product = (Product) session.getAttribute("product");  // Fix: retrieve the Product object, not productCode
+        String url = "/musicStore/sound/" + product.getCode() + "_download.jsp";
 
         return url;
-
-
     }
-    private String deleteCookies(HttpServletRequest request, HttpServletResponse response) {
 
+    private String deleteCookies(HttpServletRequest request, HttpServletResponse response) {
         Cookie[] cookies = request.getCookies();
         for (Cookie cookie : cookies) {
-            cookie.setMaxAge(0); //delete the cookie
-            cookie.setPath("/"); //allow the download application to access it
+            cookie.setMaxAge(0); // delete the cookie
+            cookie.setPath("/"); // allow the download application to access it
             response.addCookie(cookie);
         }
         request.getSession().removeAttribute("user");
-        request.getSession().removeAttribute("product");
         String url = "/delete_cookies.jsp";
         return url;
     }

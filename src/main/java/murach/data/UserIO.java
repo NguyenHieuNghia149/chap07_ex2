@@ -35,7 +35,7 @@ public class UserIO {
                 if (t.countTokens() < 3) {
                     return new User("", "", "");
                 }
-
+                System.out.println("Reading line: " + line);
                 String token = t.nextToken();
                 if (token.equalsIgnoreCase(email)) {
                     String firstName = t.nextToken();
